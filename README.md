@@ -16,7 +16,7 @@ copy the `.env-example` and rename it to `.env`, adjust the values.
 PUBLIC_KEY=""
 PRIVATE_KEY=""
 # forced time interval (minutes) between buys
-REFRESH_INTERVAL=10000 
+REFRESH_INTERVAL=1000 * 60
 # tradepairs on 1inch
 PAIRS_1INCH=["WBTCUSDC", "SNXUSDC", "MATICUSDC"]
 # corresponding pairs on binance
