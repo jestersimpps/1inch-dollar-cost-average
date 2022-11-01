@@ -18,7 +18,8 @@ export enum Chain {
 
 export enum TradeStatus {
   READY = "READY",
-  TRIGGERED = "TRIGGERED",
+  WAITING_FOR_BUY = "WAITING_FOR_BUY",
+  WAITING_FOR_SELL = "WAITING_FOR_SELL",
 }
 
 export interface Ticker {

@@ -1,6 +1,8 @@
 # 1inch-dollar-cost-average
 
-1inch exchange trade bot that dollar cost averages the dips once every hour/day/week
+
+A quick something I put together to dollar cost average a DEX wallet on polygon.
+1inch exchange trade bot that buys the dips once per hour/day/week
 
 # configuring the app
 

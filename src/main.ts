@@ -60,7 +60,13 @@ export class Main {
     this.data.getTickerArray().forEach((ticker) => {
       if (ticker.token.address) {
         if (ticker.lastTradeDate < Date.now() - REFRESH_INTERVAL * 1000 * 60) {
-          const isLong = this.trading.checkForTrade(ticker);
+          const isLong = this.trading.checkForLong(ticker);
+          const isShort = this.trading.checkForShort(ticker);
+          if(isShort){
+            sendPrivateTelegramMessage(
+              `Sell alert ${ticker.symbol_binance} at ${ticker.price_binance}`
+            );
+          }
           if (isLong) {
             this.inchApi.swap(
               BASECURRENCY,
@@ -75,15 +81,21 @@ export class Main {
         }
       }
     });
-
-    console.log(
-      this.data.getTickerArray().map((t) => ({
-        symbol: t.symbol_binance,
-        binance: t.price_binance,
-        ["1inch"]: t.token.price,
-        balance: t.token.balance,
-      }))
-    );
+    console.log(``);
+    this.data
+      .getTickerArray()
+      .sort((a, b) =>a.symbol_binance.localeCompare(b.symbol_binance))
+      .forEach((t) =>
+        console.log(
+          t.symbol_binance,
+          `binance price:`,
+          t.price_binance,
+          `1inch price:`,
+          t.token.price,
+          `balance:`,
+          t.token.balance
+        )
+      );
   }
 
   async init() {
