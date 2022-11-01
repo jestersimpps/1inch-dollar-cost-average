@@ -50,4 +50,4 @@ be sure you have typescript installed
 
 ## running after compilation
 
-`node dist/main`
+`node dist/main` or `npm start`
