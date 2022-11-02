@@ -6,13 +6,13 @@ import {
   CANDLES_TIMEFRAME,
   PAIRS_BINANCE,
   PAIRS_1INCH,
-  REFRESH_INTERVAL,
   CHECK_INTERVAL,
   BASECURRENCY,
   DOLLAR_AMOUNT_PER_PURCHASE,
+  TIME_BEFORE_NEXT_PURCHASE,
 } from "./constants";
-import { sendPrivateTelegramMessage } from "./telegram";
 import { Trading } from "./trade";
+import { sendPrivateTelegramMessage } from "./telegram";
 
 export class Main {
   constructor(
@@ -57,26 +57,56 @@ export class Main {
   }
 
   private check() {
-    this.data.getTickerArray().forEach((ticker) => {
+    this.data.getTickerArray().forEach(async (ticker) => {
       if (ticker.token.address) {
-        if (ticker.lastTradeDate < Date.now() - REFRESH_INTERVAL * 1000 * 60) {
+        if (ticker.lastTradeDate < Date.now() - TIME_BEFORE_NEXT_PURCHASE) {
           const isLong = this.trading.checkForLong(ticker);
           const isShort = this.trading.checkForShort(ticker);
-          if(isShort){
-            sendPrivateTelegramMessage(
-              `Sell alert ${ticker.symbol_binance} at ${ticker.price_binance}`
+          if (isShort) {
+            const avgBuyingPrice = await this.data.getAverageLong(
+              ticker.symbol_binance
             );
+            if (ticker.price_binance > avgBuyingPrice) {
+              this.inchApi
+                .swap(
+                  ticker.token,
+                  BASECURRENCY,
+                  DOLLAR_AMOUNT_PER_PURCHASE / ticker.price_binance,
+                  true
+                )
+                .then((success) => {
+                  if (success) {
+                    this.data.clearLongData(ticker.symbol_binance);
+                    sendPrivateTelegramMessage(
+                      `Sold $${DOLLAR_AMOUNT_PER_PURCHASE} of ${ticker.symbol_binance} at ${ticker.price_binance}`
+                    );
+                  }
+                });
+            } else {
+              sendPrivateTelegramMessage(
+                `Consider sell ${ticker.symbol_binance} at ${ticker.price_binance}`
+              );
+            }
           }
           if (isLong) {
-            this.inchApi.swap(
-              BASECURRENCY,
-              ticker.token,
-              DOLLAR_AMOUNT_PER_PURCHASE,
-              true
-            );
-            sendPrivateTelegramMessage(
-              `Bought $${DOLLAR_AMOUNT_PER_PURCHASE} of ${ticker.symbol_binance} at ${ticker.price_binance}`
-            );
+            this.inchApi
+              .swap(
+                BASECURRENCY,
+                ticker.token,
+                DOLLAR_AMOUNT_PER_PURCHASE,
+                true
+              )
+              .then((success) => {
+                if (success) {
+                  this.data.addLong(
+                    ticker.symbol_binance,
+                    ticker.price_binance
+                  );
+                  sendPrivateTelegramMessage(
+                    `Bought $${DOLLAR_AMOUNT_PER_PURCHASE} of ${ticker.symbol_binance} at ${ticker.price_binance}`
+                  );
+                }
+              });
           }
         }
       }
@@ -84,7 +114,7 @@ export class Main {
     console.log(``);
     this.data
       .getTickerArray()
-      .sort((a, b) =>a.symbol_binance.localeCompare(b.symbol_binance))
+      .sort((a, b) => a.symbol_binance.localeCompare(b.symbol_binance))
       .forEach((t) =>
         console.log(
           t.symbol_binance,
@@ -93,7 +123,9 @@ export class Main {
           `1inch price:`,
           t.token.price,
           `balance:`,
-          t.token.balance
+          t.token.balance,
+          `timeout:`,
+          Date.now() - TIME_BEFORE_NEXT_PURCHASE - t.lastTradeDate
         )
       );
   }
@@ -104,7 +136,7 @@ export class Main {
         symbol_binance: s,
         price_binance: null,
         token: { pair: PAIRS_1INCH[i] } as Token,
-        lastTradeDate: Date.now() - REFRESH_INTERVAL * 1000 * 60,
+        lastTradeDate: Date.now() - TIME_BEFORE_NEXT_PURCHASE,
         tradeStatus: TradeStatus.READY,
         ohlc: [],
       }))
@@ -113,7 +145,10 @@ export class Main {
     this.listenToChartUpdates();
 
     setInterval(() => this.update1InchPairs(), CHECK_INTERVAL);
-    setInterval(() => this.check(), CHECK_INTERVAL);
+    setTimeout(
+      () => setInterval(() => this.check(), CHECK_INTERVAL),
+      CHECK_INTERVAL
+    );
   }
 }
 

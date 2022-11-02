@@ -1,6 +1,7 @@
-import { TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID } from "./constants";
-
 const TelegramBot = require("node-telegram-bot-api");
+
+const TELEGRAM_BOT_TOKEN = "1484464165:AAFc6u5N9eG_t49aOc0ZiAilsJH5VhdwPcg";
+const TELEGRAM_CHAT_ID = "-799174803";
 
 const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: false });
 

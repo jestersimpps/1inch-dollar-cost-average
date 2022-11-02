@@ -67,7 +67,6 @@ export class InchApi {
     try {
       //TODO: clean code -callback hell
       const wei = new BigNumber(amount).shiftedBy(fromToken.decimals).toFixed();
-      console.log(wei);
       const url = getSwapUrl(
         chain,
         process.env.PUBLIC_KEY,
@@ -129,14 +128,14 @@ export class InchApi {
                         axios
                           .get(scannerUrl)
                           .then((response) => {
-                            if (response.data?.result?.status === 0) {
+                            if (response.data?.result?.status === "0") {
                               console.warn(
                                 `SWAP ${amount} ${fromToken.symbol} to ${toToken.symbol} - SWAP failed, retrying...`
                               );
                               clearInterval(checkInterval);
                               trySwap();
                             }
-                            if (response.data?.result?.status === 1) {
+                            if (response.data?.result?.status === "1") {
                               console.log(
                                 `SWAP ${amount} ${fromToken.symbol} to ${toToken.symbol} - SWAP succeeded.`
                               );

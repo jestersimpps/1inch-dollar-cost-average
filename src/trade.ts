@@ -1,4 +1,4 @@
-import { HISTORY } from "./constants";
+import { DOLLAR_AMOUNT_PER_PURCHASE, HISTORY } from "./constants";
 import { Ticker, TradeStatus } from "./models";
 import { getLastElement, roundNumber } from "./util";
 import { Data } from "./data";
@@ -67,6 +67,7 @@ export class Trading {
         tradeStatus: TradeStatus.READY,
         lastTradeDate: Date.now(),
       });
+
       return true;
     }
 
@@ -114,7 +115,7 @@ export class Trading {
     ) {
       console.log(
         ticker.symbol_binance,
-        `SELL ACTIVATED... WAITING FOR RIGHT MOMENT TO BUY`
+        `SELL ACTIVATED... WAITING FOR RIGHT MOMENT TO SELL`
       );
       this.data.changeTickerParam(ticker.symbol_binance, {
         tradeStatus: TradeStatus.WAITING_FOR_SELL,
@@ -125,12 +126,12 @@ export class Trading {
 
     if (
       ticker.tradeStatus === TradeStatus.WAITING_FOR_SELL &&
-      getLastElement(stoch).k > getLastElement(stoch).d
+      getLastElement(stoch).k < getLastElement(stoch).d
     ) {
       this.data.changeTickerParam(ticker.symbol_binance, {
         tradeStatus: TradeStatus.READY,
       });
-      return true;
+      return true
     }
 
     return false;

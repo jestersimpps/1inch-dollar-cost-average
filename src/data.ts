@@ -1,6 +1,7 @@
 import { Ticker } from "./models";
-
 const Binance = require("node-binance-api");
+const Storage = require("node-storage");
+const store = new Storage("data.json");
 
 export const binance = new Binance().options({
   APIKEY: "<key>",
@@ -30,4 +31,20 @@ export class Data {
   getTickerArray = (): Ticker[] => this.TICKERDATA;
   getTicker = (symbol_binance: string): Ticker =>
     this.TICKERDATA.find((t) => t.symbol_binance === symbol_binance);
+
+  async addLong(symbol_binance: string, price: number) {
+    const orders = store.get(symbol_binance) || [];
+    store.put(symbol_binance, [...orders, price]);
+  }
+  async clearLongData(symbol_binance: string) {
+    store.put(symbol_binance, []);
+  }
+  async getAverageLong(symbol_binance: string) {
+    const orders = store.get(symbol_binance) || [];
+    if (orders.length) {
+      return orders.reduce((a, b) => a + b, 0) / orders.length;
+    } else {
+      return 0;
+    }
+  }
 }
