@@ -66,7 +66,7 @@ export class Main {
             const avgBuyingPrice = await this.data.getAverageLong(
               ticker.symbol_binance
             );
-            if (ticker.price_binance > avgBuyingPrice) {
+            if (+ticker.token.price > avgBuyingPrice) {
               this.inchApi
                 .swap(
                   ticker.token,
@@ -100,7 +100,7 @@ export class Main {
                 if (success) {
                   this.data.addLong(
                     ticker.symbol_binance,
-                    ticker.price_binance
+                    +ticker.token.price
                   );
                   sendPrivateTelegramMessage(
                     `Bought $${DOLLAR_AMOUNT_PER_PURCHASE} of ${ticker.symbol_binance} at ${ticker.price_binance}`

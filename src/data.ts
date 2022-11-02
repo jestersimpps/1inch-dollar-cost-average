@@ -44,7 +44,7 @@ export class Data {
     if (orders.length) {
       return orders.reduce((a, b) => a + b, 0) / orders.length;
     } else {
-      return 0;
+      return 99999999999999999999999;
     }
   }
 }
