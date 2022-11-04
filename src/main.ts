@@ -66,7 +66,10 @@ export class Main {
             const avgBuyingPrice = await this.data.getAverageLong(
               ticker.symbol_binance
             );
-            if (+ticker.token.price > avgBuyingPrice) {
+            if (
+              +ticker.token.price > avgBuyingPrice * 1.01 &&
+              ticker.token.pair !== "MATICUSDC"
+            ) {
               this.inchApi
                 .swap(
                   ticker.token,
@@ -98,10 +101,7 @@ export class Main {
               )
               .then((success) => {
                 if (success) {
-                  this.data.addLong(
-                    ticker.symbol_binance,
-                    +ticker.token.price
-                  );
+                  this.data.addLong(ticker.symbol_binance, +ticker.token.price);
                   sendPrivateTelegramMessage(
                     `Bought $${DOLLAR_AMOUNT_PER_PURCHASE} of ${ticker.symbol_binance} at ${ticker.price_binance}`
                   );

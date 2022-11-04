@@ -7,7 +7,7 @@ export const WEI_DECIMALS = 1000000000000000000;
 export const PAIRS_1INCH: string[] = JSON.parse(process.env.PAIRS_1INCH);
 export const PAIRS_BINANCE: string[] = JSON.parse(process.env.PAIRS_BINANCE);
 export const TIME_BEFORE_NEXT_PURCHASE = +process.env.TIME_BEFORE_NEXT_PURCHASE; // wait timeout before new order
-export const CHECK_INTERVAL = 1000 * 10; // interval to check for new opportunities
+export const CHECK_INTERVAL = 1000 * 5; // interval to check for new opportunities
 export const CANDLES_TIMEFRAME = process.env.CANDLES_TIMEFRAME;
 export const DOLLAR_AMOUNT_PER_PURCHASE =
   +process.env.DOLLAR_AMOUNT_PER_PURCHASE; // size of dollar cost average order in USD
