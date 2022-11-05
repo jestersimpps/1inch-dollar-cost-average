@@ -39,6 +39,10 @@ export class Data {
   async clearLongData(symbol_binance: string) {
     store.put(symbol_binance, []);
   }
+  async getOrders(symbol_binance: string) {
+    const orders = store.get(symbol_binance) || [];
+    return orders;
+  }
   async getAverageLong(symbol_binance: string) {
     const orders = store.get(symbol_binance) || [];
     if (orders.length) {

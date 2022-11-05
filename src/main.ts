@@ -77,17 +77,35 @@ export class Main {
                   DOLLAR_AMOUNT_PER_PURCHASE / ticker.price_binance,
                   true
                 )
-                .then((success) => {
+                .then(async (success) => {
                   if (success) {
                     this.data.clearLongData(ticker.symbol_binance);
                     sendPrivateTelegramMessage(
                       `Sold $${DOLLAR_AMOUNT_PER_PURCHASE} of ${ticker.symbol_binance} at ${ticker.price_binance}`
                     );
+                  } else {
+                    const orders = await this.data.getOrders(
+                      ticker.symbol_binance
+                    );
+                    const amount = orders.length * DOLLAR_AMOUNT_PER_PURCHASE;
+
+                    sendPrivateTelegramMessage(
+                      `${ticker.token.pair} ${amount} at ${
+                        (ticker.token.price / avgBuyingPrice) * 100 - 100
+                      } `
+                    );
                   }
                 });
             } else {
+              const orders = await this.data.getOrders(
+                ticker.symbol_binance
+              );
+              const amount = orders.length * DOLLAR_AMOUNT_PER_PURCHASE;
+
               sendPrivateTelegramMessage(
-                `Consider sell ${ticker.symbol_binance} at ${ticker.price_binance}`
+                `${ticker.token.pair} ${amount} at ${
+                  (ticker.token.price / avgBuyingPrice) * 100 - 100
+                } `
               );
             }
           }
