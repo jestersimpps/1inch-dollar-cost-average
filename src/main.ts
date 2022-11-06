@@ -1,5 +1,5 @@
 import { InchApi } from "./1inch-api";
-import { mapToOhlc } from "./util";
+import { mapToOhlc, roundNumber } from "./util";
 import { binance, Data } from "./data";
 import { Ticker, Token, TradeStatus } from "./models";
 import {
@@ -66,9 +66,12 @@ export class Main {
             const avgBuyingPrice = await this.data.getAverageLong(
               ticker.symbol_binance
             );
+            const orders = await this.data.getOrders(ticker.symbol_binance);
+            const amount = orders.length * DOLLAR_AMOUNT_PER_PURCHASE;
+
             if (
               +ticker.token.price > avgBuyingPrice * 1.01 &&
-              ticker.token.pair !== "MATICUSDC"
+              ticker.token.pair !== "MATICUSDC" // Need matic for exchange
             ) {
               this.inchApi
                 .swap(
@@ -84,29 +87,11 @@ export class Main {
                       `Sold $${DOLLAR_AMOUNT_PER_PURCHASE} of ${ticker.symbol_binance} at ${ticker.price_binance}`
                     );
                   } else {
-                    const orders = await this.data.getOrders(
-                      ticker.symbol_binance
-                    );
-                    const amount = orders.length * DOLLAR_AMOUNT_PER_PURCHASE;
-
-                    sendPrivateTelegramMessage(
-                      `${ticker.token.pair} ${amount} at ${
-                        (ticker.token.price / avgBuyingPrice) * 100 - 100
-                      } `
-                    );
+                    this.sendStatusMessage(ticker, avgBuyingPrice, amount);
                   }
                 });
             } else {
-              const orders = await this.data.getOrders(
-                ticker.symbol_binance
-              );
-              const amount = orders.length * DOLLAR_AMOUNT_PER_PURCHASE;
-
-              sendPrivateTelegramMessage(
-                `${ticker.token.pair} ${amount} at ${
-                  (ticker.token.price / avgBuyingPrice) * 100 - 100
-                } `
-              );
+              this.sendStatusMessage(ticker, avgBuyingPrice, amount);
             }
           }
           if (isLong) {
@@ -146,6 +131,18 @@ export class Main {
           Date.now() - TIME_BEFORE_NEXT_PURCHASE - t.lastTradeDate
         )
       );
+  }
+
+  private sendStatusMessage(ticker, avgBuyingPrice, amount) {
+    sendPrivateTelegramMessage(
+      `${ticker.token.pair} ${amount} at ${roundNumber(
+        (ticker.token.price / avgBuyingPrice) * 100 - 100,
+        0.1
+      )}% avg: ${roundNumber(avgBuyingPrice, 0.01)} current:${roundNumber(
+        ticker.token.price,
+        0.01
+      )}`
+    );
   }
 
   async init() {
