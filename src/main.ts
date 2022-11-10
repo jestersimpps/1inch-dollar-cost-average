@@ -42,6 +42,7 @@ export class Main {
 
   private async update1InchPairs() {
     const tokenList = await this.inchApi.getTokenList(BASECURRENCY);
+    console.log(tokenList)
     this.data.getTickerArray().forEach((ticker) => {
       const token = tokenList.find((token) => token.pair === ticker.token.pair);
       if (token) {
@@ -68,10 +69,11 @@ export class Main {
             );
             const orders = await this.data.getOrders(ticker.symbol_binance);
             const amount = orders.length * DOLLAR_AMOUNT_PER_PURCHASE;
-
+            const hasEnoughBalance =
+              ticker.token.pair.indexOf("MATIC") && ticker.token.balance > 100;
             if (
               +ticker.token.price > avgBuyingPrice * 1.01 &&
-              ticker.token.pair !== "MATICUSDC" // Need matic for exchange
+              hasEnoughBalance
             ) {
               this.inchApi
                 .swap(

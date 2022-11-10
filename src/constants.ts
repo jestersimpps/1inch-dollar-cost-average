@@ -14,9 +14,15 @@ export const DOLLAR_AMOUNT_PER_PURCHASE =
 export const HISTORY = 100; // check this many ticks candles for break
 export const POLYGONSCAN_API_KEY = process.env.POLYGONSCAN_API_KEY;
 
+// export const BASECURRENCY = {
+//   name: `USDC`,
+//   symbol: `USDC`,
+//   address: `0x2791bca1f2de4661ed88a30c99a7a9449aa84174`,
+//   decimals: 6,
+// };
 export const BASECURRENCY = {
-  name: `USDC`,
-  symbol: `USDC`,
-  address: `0x2791bca1f2de4661ed88a30c99a7a9449aa84174`,
-  decimals: 6,
+  name: `WBTC`,
+  symbol: `WBTC`,
+  address: `0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6`,
+  decimals: 8,
 };
