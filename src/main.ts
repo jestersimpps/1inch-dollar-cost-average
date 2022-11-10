@@ -42,7 +42,6 @@ export class Main {
 
   private async update1InchPairs() {
     const tokenList = await this.inchApi.getTokenList(BASECURRENCY);
-    console.log(tokenList)
     this.data.getTickerArray().forEach((ticker) => {
       const token = tokenList.find((token) => token.pair === ticker.token.pair);
       if (token) {
