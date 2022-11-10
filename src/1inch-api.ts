@@ -96,7 +96,7 @@ export class InchApi {
             "gwei"
           );
         } catch {
-          // ignore
+          return null;
         }
         // console.log(tokenObject);
         // console.log(tokenObject["tx"]["value"]);
