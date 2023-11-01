@@ -3,169 +3,164 @@ import { mapToOhlc, roundNumber } from "./util";
 import { binance, Data } from "./data";
 import { Ticker, Token, TradeStatus } from "./models";
 import {
-  CANDLES_TIMEFRAME,
-  PAIRS_BINANCE,
-  PAIRS_1INCH,
-  CHECK_INTERVAL,
-  BASECURRENCY,
-  DOLLAR_AMOUNT_PER_PURCHASE,
-  TIME_BEFORE_NEXT_PURCHASE,
+ CANDLES_TIMEFRAME,
+ PAIRS_BINANCE,
+ SYMBOLS_1INCH,
+ CHECK_INTERVAL,
+ DOLLAR_AMOUNT_PER_PURCHASE,
+ TIME_BEFORE_NEXT_PURCHASE,
+ BASE_SYMBOL_BINANCE,
 } from "./constants";
 import { Trading } from "./trade";
 import { sendPrivateTelegramMessage } from "./telegram";
 
 export class Main {
-  constructor(
-    private data: Data,
-    private inchApi: InchApi,
-    private trading: Trading
-  ) {}
+ constructor(
+  private data: Data,
+  private inchApi: InchApi,
+  private trading: Trading
+ ) {}
 
-  private listenToChartUpdates() {
-    this.data.getTickerArray().forEach((ticker) =>
-      binance.websockets.chart(
-        ticker.symbol_binance,
-        CANDLES_TIMEFRAME,
-        (symbol, interval, chart) => {
-          const chartObject = mapToOhlc(chart);
-          if (chartObject.length) {
-            const lastPrice = chartObject[chartObject.length - 1].close;
-            this.data.changeTickerParam(symbol, {
-              price_binance: lastPrice,
-              ohlc: chartObject,
-            });
-          }
-        }
-      )
+ private listenToChartUpdates() {
+  this.data.getTickerArray().forEach((ticker) =>
+   binance.websockets.chart(
+    ticker.symbol_binance,
+    CANDLES_TIMEFRAME,
+    (symbol, interval, chart) => {
+     const chartObject = mapToOhlc(chart);
+     if (chartObject.length) {
+      const lastPrice = chartObject[chartObject.length - 1].close;
+      this.data.changeTickerParam(symbol, {
+       price_binance: lastPrice,
+       ohlc: chartObject,
+      });
+     }
+    }
+   )
+  );
+ }
+
+ private async update1InchPairs() {
+  const tokenList = await this.inchApi.getTokenList();
+  this.data.getTickerArray().forEach((ticker) => {
+   const token = tokenList.find(
+    (token) => token.symbol === ticker.token.symbol
+   );
+   if (token) {
+    this.data.changeTickerParam(ticker.symbol_binance, {
+     token,
+    });
+   } else {
+    console.error(
+     `can't find symbol: ${ticker.token.symbol} in 1inch token list`
     );
-  }
+   }
+  });
+ }
 
-  private async update1InchPairs() {
-    const tokenList = await this.inchApi.getTokenList(BASECURRENCY);
-    this.data.getTickerArray().forEach((ticker) => {
-      const token = tokenList.find((token) => token.pair === ticker.token.pair);
-      if (token) {
-        this.data.changeTickerParam(ticker.symbol_binance, {
-          token,
-        });
-      } else {
-        console.error(
-          `can't find pair: ${ticker.token.pair} in 1inch token list`
-        );
-      }
-    });
-  }
-
-  private check() {
-    this.data.getTickerArray().forEach(async (ticker) => {
-      if (ticker.token.address) {
-        if (ticker.lastTradeDate < Date.now() - TIME_BEFORE_NEXT_PURCHASE) {
-          const isLong = this.trading.checkForLong(ticker);
-          const isShort = this.trading.checkForShort(ticker);
-          if (isShort) {
-            const avgBuyingPrice = await this.data.getAverageLong(
-              ticker.symbol_binance
-            );
-            const orders = await this.data.getOrders(ticker.symbol_binance);
-            const amount = orders.length * DOLLAR_AMOUNT_PER_PURCHASE;
-            const hasEnoughBalance =
-              ticker.token.pair.indexOf("MATIC") && ticker.token.balance > 100;
-            if (
-              +ticker.token.price > avgBuyingPrice * 1.01 &&
-              hasEnoughBalance
-            ) {
-              this.inchApi
-                .swap(
-                  ticker.token,
-                  BASECURRENCY,
-                  DOLLAR_AMOUNT_PER_PURCHASE / ticker.price_binance,
-                  true
-                )
-                .then(async (success) => {
-                  if (success) {
-                    this.data.clearLongData(ticker.symbol_binance);
-                    sendPrivateTelegramMessage(
-                      `Sold $${DOLLAR_AMOUNT_PER_PURCHASE} of ${ticker.symbol_binance} at ${ticker.price_binance}`
-                    );
-                  } else {
-                    this.sendStatusMessage(ticker, avgBuyingPrice, amount);
-                  }
-                });
-            } else {
-              this.sendStatusMessage(ticker, avgBuyingPrice, amount);
-            }
-          }
-          if (isLong) {
-            this.inchApi
-              .swap(
-                BASECURRENCY,
-                ticker.token,
-                DOLLAR_AMOUNT_PER_PURCHASE,
-                true
-              )
-              .then((success) => {
-                if (success) {
-                  this.data.addLong(ticker.symbol_binance, +ticker.token.price);
-                  sendPrivateTelegramMessage(
-                    `Bought $${DOLLAR_AMOUNT_PER_PURCHASE} of ${ticker.symbol_binance} at ${ticker.price_binance}`
-                  );
-                }
-              });
-          }
-        }
-      }
-    });
-    console.log(``);
-    this.data
-      .getTickerArray()
-      .sort((a, b) => a.symbol_binance.localeCompare(b.symbol_binance))
-      .forEach((t) =>
-        console.log(
-          t.symbol_binance,
-          `binance price:`,
-          t.price_binance,
-          `1inch price:`,
-          t.token.price,
-          `balance:`,
-          t.token.balance,
-          `timeout:`,
-          Date.now() - TIME_BEFORE_NEXT_PURCHASE - t.lastTradeDate
-        )
+ private check() {
+  this.data.getTickerArray().forEach(async (ticker) => {
+   if (ticker.token.address) {
+    if (ticker.lastTradeDate < Date.now() - TIME_BEFORE_NEXT_PURCHASE) {
+     const isLong = this.trading.checkForLong(ticker);
+     const isShort = this.trading.checkForShort(ticker);
+     if (isShort) {
+      const avgBuyingPrice = await this.data.getAverageLong(
+       ticker.symbol_binance
       );
-  }
+      const orders = await this.data.getOrders(ticker.symbol_binance);
+      const amount = orders.length * DOLLAR_AMOUNT_PER_PURCHASE;
+      const hasEnoughBalance =
+       ticker.token.pair.indexOf("MATIC") && ticker.token.balance > 100;
+      if (+ticker.token.price > avgBuyingPrice * 1.01 && hasEnoughBalance) {
+       //  this.inchApi
+       //   .swap(
+       //    ticker.token,
+       //    BASECURRENCY,
+       //    DOLLAR_AMOUNT_PER_PURCHASE / ticker.price_binance,
+       //    true
+       //   )
+       //   .then(async (success) => {
+       //    if (success) {
+       //     this.data.clearLongData(ticker.symbol_binance);
+       //     sendPrivateTelegramMessage(
+       //      `Sold $${DOLLAR_AMOUNT_PER_PURCHASE} of ${ticker.symbol_binance} at ${ticker.price_binance}`
+       //     );
+       //    } else {
+       //     this.sendStatusMessage(ticker, avgBuyingPrice, amount);
+       //    }
+       //   });
+      } else {
+       this.sendStatusMessage(ticker, avgBuyingPrice, amount);
+      }
+     }
+     if (isLong) {
+      // this.inchApi
+      //  .swap(BASECURRENCY, ticker.token, DOLLAR_AMOUNT_PER_PURCHASE, true)
+      //  .then((success) => {
+      //   if (success) {
+      //    this.data.addLong(ticker.symbol_binance, +ticker.token.price);
+      //    sendPrivateTelegramMessage(
+      //     `Bought $${DOLLAR_AMOUNT_PER_PURCHASE} of ${ticker.symbol_binance} at ${ticker.price_binance}`
+      //    );
+      //   }
+      //  });
+     }
+    }
+   }
+  });
+  this.data
+   .getTickerArray()
+   .sort((a, b) => a.symbol_binance.localeCompare(b.symbol_binance))
+   .forEach((t) =>
+    console.log(
+     t.symbol_binance,
+     `binance price:`,
+     t.price_binance,
+     `1inch price:`,
+     t.token.price,
+     `balance:`,
+     t.token.balance,
+     `trade balance:`,
+     t.token.balance * t.token.price,
+     `timeout:`,
+     Date.now() - TIME_BEFORE_NEXT_PURCHASE - t.lastTradeDate
+    )
+   );
+ }
 
-  private sendStatusMessage(ticker, avgBuyingPrice, amount) {
-    sendPrivateTelegramMessage(
-      `${ticker.token.pair} ${amount} at ${roundNumber(
-        (ticker.token.price / avgBuyingPrice) * 100 - 100,
-        0.1
-      )}% avg: ${roundNumber(avgBuyingPrice, 0.01)} current:${roundNumber(
-        ticker.token.price,
-        0.01
-      )}`
-    );
-  }
+ private sendStatusMessage(ticker, avgBuyingPrice, amount) {
+  sendPrivateTelegramMessage(
+   `${ticker.token.pair} ${amount} at ${roundNumber(
+    (ticker.token.price / avgBuyingPrice) * 100 - 100,
+    0.1
+   )}% avg: ${roundNumber(avgBuyingPrice, 0.01)} current:${roundNumber(
+    ticker.token.price,
+    0.01
+   )}`
+  );
+ }
 
-  async init() {
-    this.data.setTickerArray(
-      PAIRS_BINANCE.map((s, i) => ({
-        symbol_binance: s,
-        price_binance: null,
-        token: { pair: PAIRS_1INCH[i] } as Token,
-        lastTradeDate: Date.now() - TIME_BEFORE_NEXT_PURCHASE,
-        tradeStatus: TradeStatus.READY,
-        ohlc: [],
-      }))
-    );
+ async init() {
+  this.data.setTickerArray(
+   PAIRS_BINANCE.map((s, i) => ({
+    symbol_binance: `${s}${BASE_SYMBOL_BINANCE}`,
+    price_binance: null,
+    token: { symbol: SYMBOLS_1INCH[i] } as Token,
+    lastTradeDate: Date.now() - TIME_BEFORE_NEXT_PURCHASE,
+    tradeStatus: TradeStatus.READY,
+    ohlc: [],
+   }))
+  );
 
-    this.listenToChartUpdates();
+  this.listenToChartUpdates();
 
-    setInterval(() => this.update1InchPairs(), CHECK_INTERVAL);
-    setTimeout(
-      () => setInterval(() => this.check(), CHECK_INTERVAL),
-      CHECK_INTERVAL
-    );
-  }
+  setInterval(() => this.update1InchPairs(), CHECK_INTERVAL);
+  setTimeout(
+   () => setInterval(() => this.check(), CHECK_INTERVAL),
+   CHECK_INTERVAL
+  );
+ }
 }
 
 const data = new Data();

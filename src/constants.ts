@@ -1,28 +1,20 @@
-require("dotenv").config();
-
-export const BASE_URL = `https://api.1inch.exchange/v4.0`;
-export const RPC_PROVIDER = `https://rpc-mainnet.maticvigil.com/v1/1697a4350bd5369ddcee70f5a62a2b90ad4b1c52`;
+export const RPC_PROVIDER = `https://polygon-rpc.com`;
 export const WEI_DECIMALS = 1000000000000000000;
 
-export const PAIRS_1INCH: string[] = JSON.parse(process.env.PAIRS_1INCH);
-export const PAIRS_BINANCE: string[] = JSON.parse(process.env.PAIRS_BINANCE);
-export const TIME_BEFORE_NEXT_PURCHASE = +process.env.TIME_BEFORE_NEXT_PURCHASE; // wait timeout before new order
+export const TIME_BEFORE_NEXT_PURCHASE = 1000 * 10; // wait timeout before new order
 export const CHECK_INTERVAL = 1000 * 5; // interval to check for new opportunities
-export const CANDLES_TIMEFRAME = process.env.CANDLES_TIMEFRAME;
-export const DOLLAR_AMOUNT_PER_PURCHASE =
-  +process.env.DOLLAR_AMOUNT_PER_PURCHASE; // size of dollar cost average order in USD
+export const CANDLES_TIMEFRAME = "1m"; // timeframe for candles
+export const DOLLAR_AMOUNT_PER_PURCHASE = 10; // size of dollar cost average order in USD
 export const HISTORY = 100; // check this many ticks candles for break
-export const POLYGONSCAN_API_KEY = process.env.POLYGONSCAN_API_KEY;
 
-// export const BASECURRENCY = {
-//   name: `USDC`,
-//   symbol: `USDC`,
-//   address: `0x2791bca1f2de4661ed88a30c99a7a9449aa84174`,
-//   decimals: 6,
+export const SYMBOLS_1INCH = ["WMATIC"];
+export const BASE_SYMBOL_1INCH = "WBTC";
+export const PAIRS_BINANCE = ["MATIC"];
+export const BASE_SYMBOL_BINANCE = "BTC";
+
+// export const DOLLARCURRENCY = {
+//  name: `USDC`,
+//  symbol: `USDC`,
+//  address: `0x2791bca1f2de4661ed88a30c99a7a9449aa84174`,
+//  decimals: 6,
 // };
-export const BASECURRENCY = {
-  name: `WBTC`,
-  symbol: `WBTC`,
-  address: `0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6`,
-  decimals: 8,
-};

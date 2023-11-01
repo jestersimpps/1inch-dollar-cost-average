@@ -10,6 +10,7 @@ export class Trading {
   constructor(private data: Data) {}
 
   checkForLong(ticker: Ticker): boolean {
+    if(!ticker.ohlc.length) return false
     const highArray = ticker.ohlc.map((k) => k.high);
     const lowArray = ticker.ohlc.map((k) => k.low);
     const closeArray = ticker.ohlc.map((k) => k.close);
@@ -75,6 +76,7 @@ export class Trading {
   }
 
   checkForShort(ticker: Ticker): boolean {
+    if(!ticker.ohlc.length) return false
     const highArray = ticker.ohlc.map((k) => k.high);
     const lowArray = ticker.ohlc.map((k) => k.low);
     const closeArray = ticker.ohlc.map((k) => k.close);
