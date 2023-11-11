@@ -1,5 +1,5 @@
 require("dotenv").config();
-
+import Web3 from "web3";
 import axios from "axios";
 import { Chain, SwapInfo, Token } from "./models";
 import {
@@ -8,12 +8,21 @@ import {
  BASE_SYMBOL_1INCH,
  WEI_DECIMALS,
 } from "./constants";
+import {
+ convertFromWei,
+ convertToWei,
+ divideBigNUmbers,
+ roundNumber,
+ roundToDecimals,
+} from "./util";
+import { BigNumber } from "ethers";
 
 const chainId = Chain.Polygon;
 const web3RpcUrl = RPC_PROVIDER; // URL for rpc
 const walletAddress = process.env.PUBLIC_KEY; // Your wallet address
 const privateKey = process.env.PRIVATE_KEY; // Your wallet's private key. NEVER SHARE THIS WITH ANYONE!
 const inchKey = process.env.INCH_KEY;
+const web3 = new Web3(web3RpcUrl);
 
 export class InchApi {
  private tokens: Token[] = [];
@@ -22,11 +31,11 @@ export class InchApi {
 
  constructor() {}
 
- private async waitBeforeCall() {
+ private async waitBeforeCall(time = 1000) {
   return new Promise((resolve) => {
    setTimeout(() => {
     resolve(null);
-   }, 1000);
+   }, time);
   });
  }
 
@@ -79,7 +88,9 @@ export class InchApi {
   } catch (error) {
    if (axios.isAxiosError(error)) {
     console.error(
-     `Error code: ${error.response?.status}. Message: ${error.response?.data}`
+     `Error code: ${error.response?.status}. Message: ${JSON.stringify(
+      error.response?.data
+     )}`
     );
    } else {
     console.error("An unexpected error occurred", error);
@@ -96,10 +107,11 @@ export class InchApi {
   await this.waitBeforeCall();
 
   const endpoint = `https://api.1inch.dev/swap/v5.2/${chainId}/quote`;
+
   const swapParams = {
-   src: from.address, // Token address of 1INCH
-   dst: to.address, // Token address of DAI
-   amount: amount * WEI_DECIMALS, // Amount of 1INCH to swap (in wei)
+   src: from.address,
+   dst: to.address,
+   amount: convertToWei(amount, from.decimals), // Amount of 1INCH to swap (in wei)
    from: walletAddress,
    slippage: 1, // Maximum acceptable slippage percentage for the swap (e.g., 1 for 1%)
    disableEstimate: false, // Set to true to disable estimation of swap details
@@ -118,7 +130,105 @@ export class InchApi {
   } catch (error) {
    if (axios.isAxiosError(error)) {
     console.error(
-     `Error code: ${error.response?.status}. Message: ${error.response?.data}`
+     `Error code: ${error.response?.status}. Message: ${JSON.stringify(
+      error.response?.data
+     )}`
+    );
+   } else {
+    console.error("An unexpected error occurred", error);
+   }
+   return null;
+  }
+ }
+
+ private async getSwapTransaction(
+  from: Token,
+  to: Token,
+  amount: number
+ ): Promise<SwapInfo> {
+  await this.waitBeforeCall(3000);
+
+  const endpoint = `https://api.1inch.dev/swap/v5.2/${chainId}/swap`;
+
+  console.log(convertToWei(amount, from.decimals));
+  
+  const swapParams = {
+   src: from.address,
+   dst: to.address,
+   amount: convertToWei(amount, from.decimals), // Amount of 1INCH to swap (in wei)
+   from: walletAddress,
+   slippage: 1, // Maximum acceptable slippage percentage for the swap (e.g., 1 for 1%)
+   disableEstimate: false, // Set to true to disable estimation of swap details
+   allowPartialFill: false, // Set to true to allow partial filling of the swap order
+  };
+
+  try {
+   const response = await axios.get(endpoint, {
+    headers: {
+     accept: "application/json",
+     Authorization: `Bearer ${inchKey}`,
+    },
+    params: swapParams,
+   });
+   return response.data;
+  } catch (error) {
+   if (axios.isAxiosError(error)) {
+    console.error(
+     `Error code: ${error.response?.status}. Message: ${JSON.stringify(
+      error.response?.data
+     )}`
+    );
+   } else {
+    console.error("An unexpected error occurred", error);
+   }
+  }
+  return null;
+ }
+
+ public getQuoteToken(): Token {
+  return this.tokens.find((t) => t.symbol === BASE_SYMBOL_1INCH);
+ }
+
+ public async performSwap(
+  from: Token,
+  to: Token,
+  amount: number
+ ): Promise<null | string | void> {
+  await this.waitBeforeCall();
+  try {
+   const transaction = await this.getSwapTransaction(from, to, amount);
+   if (!transaction) return console.log("No transaction found");
+
+   const { rawTransaction } = await web3.eth.accounts.signTransaction(
+    transaction?.tx,
+    privateKey
+   );
+
+   console.log("Sending transaction: " + rawTransaction);
+
+   const broadcastEndpoint =
+    "https://api.1inch.dev/tx-gateway/v1.1/" + chainId + "/broadcast";
+
+   await this.waitBeforeCall(2000);
+   const response = await axios.post(
+    broadcastEndpoint,
+    { rawTransaction },
+    {
+     headers: {
+      accept: "application/json",
+      Authorization: `Bearer ${inchKey}`,
+     },
+    }
+   );
+   const transactionHash = response.data.transactionHash;
+   console.log("New transaction: " + transactionHash);
+   return transactionHash;
+  } catch (error) {
+   if (axios.isAxiosError(error)) {
+    console.error(
+     `Error code: ${error.response?.status}. Message: ${JSON.stringify(
+      error.response?.data
+     )}`
     );
    } else {
     console.error("An unexpected error occurred", error);
@@ -184,11 +294,15 @@ export class InchApi {
    const token: Token = {
     ...tradeToken,
     pair: pairString,
-    price: +prices[tradeToken.address] / +prices[quoteToken.address],
-    balance: +balances[tradeToken.address],
+    price: roundToDecimals(
+     divideBigNUmbers(+prices[tradeToken.address], +prices[quoteToken.address]),
+     tradeToken.decimals
+    ),
+    balance: convertFromWei(+balances[tradeToken.address], tradeToken.decimals),
    };
    lastTokens.push(token);
   }
+
   this.tokens = lastTokens;
   return this.tokens;
  }

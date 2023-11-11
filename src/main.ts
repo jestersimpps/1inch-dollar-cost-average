@@ -1,13 +1,13 @@
 import { InchApi } from "./1inch-api";
 import { mapToOhlc, roundNumber } from "./util";
 import { binance, Data } from "./data";
-import { Ticker, Token, TradeStatus } from "./models";
+import { Token, TradeStatus } from "./models";
 import {
  CANDLES_TIMEFRAME,
  PAIRS_BINANCE,
  SYMBOLS_1INCH,
  CHECK_INTERVAL,
- DOLLAR_AMOUNT_PER_PURCHASE,
+ AMOUNT_PER_PURCHASE,
  TIME_BEFORE_NEXT_PURCHASE,
  BASE_SYMBOL_BINANCE,
 } from "./constants";
@@ -59,50 +59,74 @@ export class Main {
  }
 
  private check() {
+  const quoteToken = this.inchApi.getQuoteToken();
   this.data.getTickerArray().forEach(async (ticker) => {
    if (ticker.token.address) {
     if (ticker.lastTradeDate < Date.now() - TIME_BEFORE_NEXT_PURCHASE) {
      const isLong = this.trading.checkForLong(ticker);
      const isShort = this.trading.checkForShort(ticker);
      if (isShort) {
-      const avgBuyingPrice = await this.data.getAverageLong(
-       ticker.symbol_binance
+      const txHash = await this.inchApi.performSwap(
+       ticker.token,
+       quoteToken,
+       AMOUNT_PER_PURCHASE
       );
-      const orders = await this.data.getOrders(ticker.symbol_binance);
-      const amount = orders.length * DOLLAR_AMOUNT_PER_PURCHASE;
-      const hasEnoughBalance =
-       ticker.token.pair.indexOf("MATIC") && ticker.token.balance > 100;
-      if (+ticker.token.price > avgBuyingPrice * 1.01 && hasEnoughBalance) {
-       //  this.inchApi
-       //   .swap(
-       //    ticker.token,
-       //    BASECURRENCY,
-       //    DOLLAR_AMOUNT_PER_PURCHASE / ticker.price_binance,
-       //    true
-       //   )
-       //   .then(async (success) => {
-       //    if (success) {
-       //     this.data.clearLongData(ticker.symbol_binance);
-       //     sendPrivateTelegramMessage(
-       //      `Sold $${DOLLAR_AMOUNT_PER_PURCHASE} of ${ticker.symbol_binance} at ${ticker.price_binance}`
-       //     );
-       //    } else {
-       //     this.sendStatusMessage(ticker, avgBuyingPrice, amount);
-       //    }
-       //   });
+      // const avgBuyingPrice = await this.data.getAverageLong(
+      //  ticker.symbol_binance
+      // );
+      // const orders = await this.data.getOrders(ticker.symbol_binance);
+      // const amount = orders.length * DOLLAR_AMOUNT_PER_PURCHASE;
+      // const hasEnoughBalance =
+      //  ticker.token.pair.indexOf("MATIC") && ticker.token.balance > 100;
+      // if (+ticker.token.price > avgBuyingPrice * 1.01 && hasEnoughBalance) {
+      //  this.inchApi
+      //   .swap(
+      //    ticker.token,
+      //    BASECURRENCY,
+      //    DOLLAR_AMOUNT_PER_PURCHASE / ticker.price_binance,
+      //    true
+      //   )
+      //   .then(async (success) => {
+      //    if (success) {
+      // this.data.clearLongData(ticker.symbol_binance);
+      if (txHash) {
+       sendPrivateTelegramMessage(
+        `Sell ${ticker.symbol_binance} at ${ticker.price_binance}: https://polygonscan.com/tx/${txHash}`
+       );
       } else {
-       this.sendStatusMessage(ticker, avgBuyingPrice, amount);
+       sendPrivateTelegramMessage(
+        `Sell ${ticker.symbol_binance} at ${ticker.price_binance} failed`
+       );
       }
+      //    } else {
+      //     this.sendStatusMessage(ticker, avgBuyingPrice, amount);
+      //    }
+      //   });
+      // } else {
+      //  this.sendStatusMessage(ticker, avgBuyingPrice, amount);
+      // }
      }
      if (isLong) {
+      const txHash = await this.inchApi.performSwap(
+       quoteToken,
+       ticker.token,
+       AMOUNT_PER_PURCHASE * +ticker.token.price
+      );
+
       // this.inchApi
       //  .swap(BASECURRENCY, ticker.token, DOLLAR_AMOUNT_PER_PURCHASE, true)
       //  .then((success) => {
       //   if (success) {
-      //    this.data.addLong(ticker.symbol_binance, +ticker.token.price);
-      //    sendPrivateTelegramMessage(
-      //     `Bought $${DOLLAR_AMOUNT_PER_PURCHASE} of ${ticker.symbol_binance} at ${ticker.price_binance}`
-      //    );
+      // this.data.addLong(ticker.symbol_binance, +ticker.token.price);
+      if (txHash) {
+       sendPrivateTelegramMessage(
+        `Buy ${ticker.symbol_binance} at ${ticker.price_binance}: https://polygonscan.com/tx/${txHash}`
+       );
+      } else {
+       sendPrivateTelegramMessage(
+        `Buy ${ticker.symbol_binance} at ${ticker.price_binance} failed`
+       );
+      }
       //   }
       //  });
      }
@@ -121,8 +145,8 @@ export class Main {
      t.token.price,
      `balance:`,
      t.token.balance,
-     `trade balance:`,
-     t.token.balance * t.token.price,
+     `quote balance:`,
+     quoteToken.balance,
      `timeout:`,
      Date.now() - TIME_BEFORE_NEXT_PURCHASE - t.lastTradeDate
     )
@@ -142,6 +166,7 @@ export class Main {
  }
 
  async init() {
+  // sendPrivateTelegramMessage(`bot started`);
   this.data.setTickerArray(
    PAIRS_BINANCE.map((s, i) => ({
     symbol_binance: `${s}${BASE_SYMBOL_BINANCE}`,

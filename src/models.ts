@@ -50,4 +50,12 @@ export interface SwapInfo {
  toAmount: string;
  protocols: Protocol[][][];
  gas: number;
+ tx: {
+  from: string;
+  to: string;
+  data: string;
+  value: string;
+  gasPrice: string;
+  gas: number;
+ };
 }

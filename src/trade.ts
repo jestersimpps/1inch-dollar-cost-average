@@ -1,4 +1,4 @@
-import { DOLLAR_AMOUNT_PER_PURCHASE, HISTORY } from "./constants";
+import { AMOUNT_PER_PURCHASE, HISTORY } from "./constants";
 import { Ticker, TradeStatus } from "./models";
 import { getLastElement, roundNumber } from "./util";
 import { Data } from "./data";
