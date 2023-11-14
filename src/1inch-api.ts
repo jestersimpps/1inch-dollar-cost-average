@@ -150,8 +150,8 @@ export class InchApi {
 
   const endpoint = `https://api.1inch.dev/swap/v5.2/${chainId}/swap`;
 
-  console.log(convertToWei(amount, from.decimals));
-  
+  // console.log(convertToWei(amount, from.decimals));
+
   const swapParams = {
    src: from.address,
    dst: to.address,
@@ -204,7 +204,7 @@ export class InchApi {
     privateKey
    );
 
-   console.log("Sending transaction: " + rawTransaction);
+   //  console.log("Sending transaction: " + rawTransaction);
 
    const broadcastEndpoint =
     "https://api.1inch.dev/tx-gateway/v1.1/" + chainId + "/broadcast";
