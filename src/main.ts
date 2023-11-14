@@ -4,7 +4,7 @@ import { binance, Data } from "./data";
 import { Token, TradeStatus } from "./models";
 import {
  CANDLES_TIMEFRAME,
- PAIRS_BINANCE,
+ SYMBOLS_BINANCE,
  SYMBOLS_1INCH,
  CHECK_INTERVAL,
  AMOUNT_PER_PURCHASE,
@@ -69,7 +69,7 @@ export class Main {
       const txHash = await this.inchApi.performSwap(
        ticker.token,
        quoteToken,
-       AMOUNT_PER_PURCHASE
+       AMOUNT_PER_PURCHASE / +ticker.token.price
       );
       // const avgBuyingPrice = await this.data.getAverageLong(
       //  ticker.symbol_binance
@@ -110,7 +110,7 @@ export class Main {
       const txHash = await this.inchApi.performSwap(
        quoteToken,
        ticker.token,
-       AMOUNT_PER_PURCHASE * +ticker.token.price
+       AMOUNT_PER_PURCHASE
       );
 
       // this.inchApi
@@ -138,15 +138,16 @@ export class Main {
    .sort((a, b) => a.symbol_binance.localeCompare(b.symbol_binance))
    .forEach((t) =>
     console.log(
+      new Date(),
      t.symbol_binance,
      `binance price:`,
      t.price_binance,
      `1inch price:`,
-     t.token.price,
+     t.token?.price,
      `balance:`,
-     t.token.balance,
+     t.token?.balance,
      `quote balance:`,
-     quoteToken.balance,
+     quoteToken?.balance,
      `timeout:`,
      Date.now() - TIME_BEFORE_NEXT_PURCHASE - t.lastTradeDate
     )
@@ -168,7 +169,7 @@ export class Main {
  async init() {
   // sendPrivateTelegramMessage(`bot started`);
   this.data.setTickerArray(
-   PAIRS_BINANCE.map((s, i) => ({
+   SYMBOLS_BINANCE.map((s, i) => ({
     symbol_binance: `${s}${BASE_SYMBOL_BINANCE}`,
     price_binance: null,
     token: { symbol: SYMBOLS_1INCH[i] } as Token,
