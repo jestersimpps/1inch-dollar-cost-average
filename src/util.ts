@@ -1,3 +1,5 @@
+import { sendPrivateTelegramMessage } from "./telegram";
+import { TIME_BEFORE_NEXT_PURCHASE } from "./constants";
 const BigNumber = require("bignumber.js");
 
 export const roundNumber = (value: number, precision: number) =>

@@ -1,15 +1,15 @@
 export const RPC_PROVIDER = `https://polygon-rpc.com`;
 export const WEI_DECIMALS = 1e18;
 
-export const TIME_BEFORE_NEXT_PURCHASE = 1000 * 15; // wait timeout before new order
+export const TIME_BEFORE_NEXT_PURCHASE = 1000 * 60; // wait timeout before new order
 export const CHECK_INTERVAL = 1000 * 10; // interval to check for new opportunities
-export const CANDLES_TIMEFRAME = "5m"; // timeframe for candles
-export const AMOUNT_PER_PURCHASE = 0.0003; // size of dollar cost average order in USD
+export const CANDLES_TIMEFRAME = "15m"; // timeframe for candles
+export const AMOUNT_PER_PURCHASE = 0.0002; // size of dollar cost average order in USD
 export const HISTORY = 50; // check this many ticks candles for break
 
-export const SYMBOLS_1INCH = ["WMATIC", "SNX", "LINK"];
+export const SYMBOLS_1INCH = ["SNX"];
 export const BASE_SYMBOL_1INCH = "WBTC";
-export const SYMBOLS_BINANCE = ["MATIC", "SNX", "LINK"];
+export const SYMBOLS_BINANCE = ["SNX"];
 export const BASE_SYMBOL_BINANCE = "BTC";
 
 // export const DOLLARCURRENCY = {

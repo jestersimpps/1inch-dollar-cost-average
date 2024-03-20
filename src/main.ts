@@ -14,6 +14,10 @@ import {
 import { Trading } from "./trade";
 import { sendPrivateTelegramMessage } from "./telegram";
 
+
+sendPrivateTelegramMessage(
+  `Bot started`
+ );
 export class Main {
  constructor(
   private data: Data,
@@ -65,46 +69,35 @@ export class Main {
     if (ticker.lastTradeDate < Date.now() - TIME_BEFORE_NEXT_PURCHASE) {
      const isLong = this.trading.checkForLong(ticker);
      const isShort = this.trading.checkForShort(ticker);
+
      if (isShort) {
-      const txHash = await this.inchApi.performSwap(
-       ticker.token,
-       quoteToken,
-       AMOUNT_PER_PURCHASE / +ticker.token.price
+      const avgBuyingPrice = await this.data.getAverageLong(
+       ticker.symbol_binance
       );
-      // const avgBuyingPrice = await this.data.getAverageLong(
-      //  ticker.symbol_binance
-      // );
-      // const orders = await this.data.getOrders(ticker.symbol_binance);
-      // const amount = orders.length * DOLLAR_AMOUNT_PER_PURCHASE;
-      // const hasEnoughBalance =
-      //  ticker.token.pair.indexOf("MATIC") && ticker.token.balance > 100;
-      // if (+ticker.token.price > avgBuyingPrice * 1.01 && hasEnoughBalance) {
-      //  this.inchApi
-      //   .swap(
-      //    ticker.token,
-      //    BASECURRENCY,
-      //    DOLLAR_AMOUNT_PER_PURCHASE / ticker.price_binance,
-      //    true
-      //   )
-      //   .then(async (success) => {
-      //    if (success) {
-      // this.data.clearLongData(ticker.symbol_binance);
-      if (txHash) {
-       sendPrivateTelegramMessage(
-        `Sell ${ticker.symbol_binance} at ${ticker.price_binance}: https://polygonscan.com/tx/${txHash}`
+      const orders = await this.data.getOrders(ticker.symbol_binance);
+      const hasEnoughBalance =
+       ticker.token.balance > AMOUNT_PER_PURCHASE / +ticker.token.price;
+      const isInProfit = orders.length
+       ? +ticker.token.price > avgBuyingPrice * 1.01
+       : true;
+
+      if (isInProfit && hasEnoughBalance) {
+       const txHash = await this.inchApi.performSwap(
+        ticker.token,
+        quoteToken,
+        AMOUNT_PER_PURCHASE / +ticker.token.price
        );
+       if (txHash) {
+        await this.data.reduceLongData(ticker.symbol_binance);
+        sendPrivateTelegramMessage(
+         `Sell ${ticker.symbol_binance} at ${ticker.price_binance}: https://polygonscan.com/tx/${txHash}`
+        );
+       }
       } else {
        sendPrivateTelegramMessage(
         `Sell ${ticker.symbol_binance} at ${ticker.price_binance} failed`
        );
       }
-      //    } else {
-      //     this.sendStatusMessage(ticker, avgBuyingPrice, amount);
-      //    }
-      //   });
-      // } else {
-      //  this.sendStatusMessage(ticker, avgBuyingPrice, amount);
-      // }
      }
      if (isLong) {
       const txHash = await this.inchApi.performSwap(
@@ -113,12 +106,8 @@ export class Main {
        AMOUNT_PER_PURCHASE
       );
 
-      // this.inchApi
-      //  .swap(BASECURRENCY, ticker.token, DOLLAR_AMOUNT_PER_PURCHASE, true)
-      //  .then((success) => {
-      //   if (success) {
-      // this.data.addLong(ticker.symbol_binance, +ticker.token.price);
       if (txHash) {
+       await this.data.addLong(ticker.symbol_binance, +ticker.token.price);
        sendPrivateTelegramMessage(
         `Buy ${ticker.symbol_binance} at ${ticker.price_binance}: https://polygonscan.com/tx/${txHash}`
        );
@@ -127,8 +116,6 @@ export class Main {
         `Buy ${ticker.symbol_binance} at ${ticker.price_binance} failed`
        );
       }
-      //   }
-      //  });
      }
     }
    }
@@ -138,32 +125,20 @@ export class Main {
    .sort((a, b) => a.symbol_binance.localeCompare(b.symbol_binance))
    .forEach((t) =>
     console.log(
-      new Date(),
+     new Date(),
      t.symbol_binance,
      `binance price:`,
-     t.price_binance,
+     +t.price_binance,
      `1inch price:`,
-     t.token?.price,
+     +t.token?.price,
      `balance:`,
-     t.token?.balance,
-     `quote balance:`,
-     quoteToken?.balance,
+     +t.token?.balance,
      `timeout:`,
-     Date.now() - TIME_BEFORE_NEXT_PURCHASE - t.lastTradeDate
+     Date.now() - TIME_BEFORE_NEXT_PURCHASE - t.lastTradeDate > 0
+      ? "ready"
+      : "wait"
     )
    );
- }
-
- private sendStatusMessage(ticker, avgBuyingPrice, amount) {
-  sendPrivateTelegramMessage(
-   `${ticker.token.pair} ${amount} at ${roundNumber(
-    (ticker.token.price / avgBuyingPrice) * 100 - 100,
-    0.1
-   )}% avg: ${roundNumber(avgBuyingPrice, 0.01)} current:${roundNumber(
-    ticker.token.price,
-    0.01
-   )}`
-  );
  }
 
  async init() {
