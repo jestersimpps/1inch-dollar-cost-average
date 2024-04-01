@@ -10,7 +10,7 @@ export const HISTORY = 50; // check this many ticks candles for break
 export const SYMBOLS_1INCH = ["SNX"];
 export const BASE_SYMBOL_1INCH = "USDC_1";
 export const SYMBOLS_BINANCE = ["SNX"];
-export const BASE_SYMBOL_BINANCE = "USDC";
+export const BASE_SYMBOL_BINANCE = "USDT";
 
 // export const DOLLARCURRENCY = {
 //  name: `USDC`,

@@ -111,7 +111,7 @@ export class Main {
       if (tx.txHash) {
        await this.data.addLong(ticker.symbol_binance, +ticker.token.price);
        sendPrivateTelegramMessage(
-        `Buy ${ticker.symbol_binance} at ${ticker.price_binance}: https://polygonscan.com/tx/${txHash}`
+        `Buy ${ticker.symbol_binance} at ${ticker.price_binance}: https://polygonscan.com/tx/${tx.txHash}`
        );
       } else {
        sendPrivateTelegramMessage(
