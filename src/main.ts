@@ -79,15 +79,19 @@ export class Main {
        : true;
 
       if (isInProfit && hasEnoughBalance) {
-       const txHash = await this.inchApi.performSwap(
+       const tx = await this.inchApi.performSwap(
         ticker.token,
         quoteToken,
         AMOUNT_PER_PURCHASE / +ticker.token.price
        );
-       if (txHash) {
+       if (tx.txHash) {
         await this.data.reduceLongData(ticker.symbol_binance);
         sendPrivateTelegramMessage(
-         `Sell ${ticker.symbol_binance} at ${ticker.price_binance}: https://polygonscan.com/tx/${txHash}`
+         `Sell ${ticker.symbol_binance} at ${ticker.price_binance}: https://polygonscan.com/tx/${tx.txHash}`
+        );
+       } else {
+        sendPrivateTelegramMessage(
+         `Sell ${ticker.symbol_binance} at ${ticker.price_binance} failed, error: ${tx.error}`
         );
        }
       } else {
@@ -98,20 +102,20 @@ export class Main {
      }
 
      if (isLong) {
-      const txHash = await this.inchApi.performSwap(
+      const tx = await this.inchApi.performSwap(
        quoteToken,
        ticker.token,
        AMOUNT_PER_PURCHASE
       );
 
-      if (txHash) {
+      if (tx.txHash) {
        await this.data.addLong(ticker.symbol_binance, +ticker.token.price);
        sendPrivateTelegramMessage(
         `Buy ${ticker.symbol_binance} at ${ticker.price_binance}: https://polygonscan.com/tx/${txHash}`
        );
       } else {
        sendPrivateTelegramMessage(
-        `Buy ${ticker.symbol_binance} at ${ticker.price_binance} failed, balance: ${ticker.token.balance}`
+        `Buy ${ticker.symbol_binance} at ${ticker.price_binance} failed, error: ${tx.error}`
        );
       }
      }
