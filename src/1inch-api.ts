@@ -281,7 +281,6 @@ export class InchApi {
   if (!this.tokens.length) {
    return this.initTokens();
   }
-  console.log(this.tokens.map((t) => t.symbol));
 
   const balances = await this.getTokenBalances(walletAddress);
   const prices = await this.refreshPrices();
