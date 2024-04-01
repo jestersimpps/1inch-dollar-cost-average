@@ -14,10 +14,7 @@ import {
 import { Trading } from "./trade";
 import { sendPrivateTelegramMessage } from "./telegram";
 
-
-sendPrivateTelegramMessage(
-  `Bot started`
- );
+sendPrivateTelegramMessage(`Bot started`);
 export class Main {
  constructor(
   private data: Data,
@@ -95,10 +92,11 @@ export class Main {
        }
       } else {
        sendPrivateTelegramMessage(
-        `Sell ${ticker.symbol_binance} at ${ticker.price_binance} failed`
+        `Sell ${ticker.symbol_binance} at ${ticker.price_binance} failed, balance: ${ticker.token.balance}, profit: ${isInProfit}, enough balance: ${hasEnoughBalance}`
        );
       }
      }
+
      if (isLong) {
       const txHash = await this.inchApi.performSwap(
        quoteToken,
@@ -113,7 +111,7 @@ export class Main {
        );
       } else {
        sendPrivateTelegramMessage(
-        `Buy ${ticker.symbol_binance} at ${ticker.price_binance} failed`
+        `Buy ${ticker.symbol_binance} at ${ticker.price_binance} failed, balance: ${ticker.token.balance}`
        );
       }
      }
@@ -136,7 +134,9 @@ export class Main {
      `timeout:`,
      Date.now() - TIME_BEFORE_NEXT_PURCHASE - t.lastTradeDate > 0
       ? "ready"
-      : "wait"
+      : "wait",
+     `status:`,
+     t.tradeStatus
     )
    );
  }

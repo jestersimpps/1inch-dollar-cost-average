@@ -193,11 +193,12 @@ export class InchApi {
   from: Token,
   to: Token,
   amount: number
- ): Promise<null | string | void> {
+ ): Promise<{ txHash: null | string; error: null | string }> {
   await this.waitBeforeCall();
   try {
    const transaction = await this.getSwapTransaction(from, to, amount);
-   if (!transaction) return console.log("No transaction found");
+   if (!transaction)
+    return { txHash: null, error: "Failed to get transaction" };
 
    const { rawTransaction } = await web3.eth.accounts.signTransaction(
     transaction?.tx,
@@ -222,7 +223,7 @@ export class InchApi {
    );
    const transactionHash = response.data.transactionHash;
    console.log("New transaction: " + transactionHash);
-   return transactionHash;
+   return { txHash: transactionHash, error: null };
   } catch (error) {
    if (axios.isAxiosError(error)) {
     console.error(
@@ -233,7 +234,10 @@ export class InchApi {
    } else {
     console.error("An unexpected error occurred", error);
    }
-   return null;
+   return {
+    txHash: null,
+    error: "Failed to perform swap: " + JSON.stringify(error),
+   };
   }
  }
 
@@ -277,6 +281,7 @@ export class InchApi {
   if (!this.tokens.length) {
    return this.initTokens();
   }
+  console.log(this.tokens.map((t) => t.symbol));
 
   const balances = await this.getTokenBalances(walletAddress);
   const prices = await this.refreshPrices();
